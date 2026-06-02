@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify, render_template
-import anthropic
+import google.generativeai as genai
 import os
 
 app = Flask(__name__)
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 @app.route("/")
 def index():
@@ -50,15 +51,11 @@ def suggest():
 
 JSONのみ返してください。説明文は不要です。"""
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    response = model.generate_content(prompt)
 
     import json
     import re
-    response_text = message.content[0].text
+    response_text = response.text
     json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
     if json_match:
         recipes = json.loads(json_match.group())
