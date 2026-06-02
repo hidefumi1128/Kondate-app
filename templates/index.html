@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>献立提案アプリ</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#ff6b35">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="献立">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background: #fff8f0;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #ff6b35;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: bold;
+    }
+
+    header p {
+      font-size: 0.9rem;
+      margin-top: 4px;
+      opacity: 0.9;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      color: #ff6b35;
+      border-bottom: 2px solid #fff0e8;
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #555;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #ff6b35;
+    }
+
+    .vegetable-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .veg-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .veg-row input {
+      flex: 1;
+    }
+
+    .btn-add-veg {
+      background: none;
+      border: 1.5px dashed #ff6b35;
+      color: #ff6b35;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 4px;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    .btn-add-veg:hover {
+      background: #fff0e8;
+    }
+
+    .btn-remove {
+      background: none;
+      border: none;
+      color: #bbb;
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .btn-remove:hover { color: #ff4444; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-submit:hover { background: #e55a25; }
+    .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+
+    .loading {
+      text-align: center;
+      padding: 32px;
+      color: #888;
+      display: none;
+    }
+
+    .loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f0e0d8;
+      border-top-color: #ff6b35;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .results { display: none; }
+
+    .results h2 {
+      font-size: 1.2rem;
+      color: #ff6b35;
+      margin-bottom: 16px;
+    }
+
+    .recipe-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+      border-left: 4px solid #ff6b35;
+    }
+
+    .recipe-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .recipe-name {
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .badge-easy { background: #d4edda; color: #155724; }
+    .badge-normal { background: #fff3cd; color: #856404; }
+    .badge-hard { background: #f8d7da; color: #721c24; }
+
+    .recipe-desc {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .recipe-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: #888;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .recipe-meta span { display: flex; align-items: center; gap: 4px; }
+
+    .recipe-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .tag {
+      background: #fff0e8;
+      color: #ff6b35;
+      font-size: 0.78rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .btn-cookpad {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ff6b35;
+      color: white;
+      padding: 9px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    .btn-cookpad:hover { background: #e55a25; }
+
+    .error-msg {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🍳 献立提案アプリ</h1>
+  <p>食材を入力して、今日の献立を見つけよう</p>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2>食材を入力</h2>
+
+    <div class="form-group">
+      <label>🥩 肉</label>
+      <input type="text" id="meat" placeholder="例: 鶏もも肉、豚バラ">
+    </div>
+
+    <div class="form-group">
+      <label>🐟 魚</label>
+      <input type="text" id="fish" placeholder="例: サーモン、鯖">
+    </div>
+
+    <div class="form-group">
+      <label>🥦 野菜</label>
+      <div class="vegetable-inputs" id="vegList">
+        <div class="veg-row">
+          <input type="text" placeholder="例: にんじん">
+        </div>
+      </div>
+      <button class="btn-add-veg" onclick="addVeg()">＋ 野菜を追加</button>
+    </div>
+
+    <div class="form-group">
+      <label>🧂 その他</label>
+      <input type="text" id="other" placeholder="例: 豆腐、卵、チーズ">
+    </div>
+
+    <button class="btn-submit" onclick="suggest()" id="submitBtn">献立を提案する</button>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>献立を考えています...</p>
+  </div>
+
+  <div class="results" id="results">
+    <h2>📋 おすすめ献立</h2>
+    <div id="recipeList"></div>
+  </div>
+</div>
+
+<script>
+  function addVeg() {
+    const list = document.getElementById("vegList");
+    const row = document.createElement("div");
+    row.className = "veg-row";
+    row.innerHTML = `
+      <input type="text" placeholder="野菜を入力">
+      <button class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+    `;
+    list.appendChild(row);
+    row.querySelector("input").focus();
+  }
+
+  function getVegetables() {
+    return Array.from(document.querySelectorAll("#vegList input"))
+      .map(i => i.value.trim())
+      .filter(v => v);
+  }
+
+  function difficultyBadge(d) {
+    if (d === "簡単") return `<span class="badge badge-easy">簡単</span>`;
+    if (d === "難しい") return `<span class="badge badge-hard">難しい</span>`;
+    return `<span class="badge badge-normal">普通</span>`;
+  }
+
+  async function suggest() {
+    const meat = document.getElementById("meat").value.trim();
+    const fish = document.getElementById("fish").value.trim();
+    const vegetables = getVegetables();
+    const other = document.getElementById("other").value.trim();
+
+    if (!meat && !fish && !vegetables.length && !other) {
+      showError("食材を1つ以上入力してください。");
+      return;
+    }
+
+    hideError();
+    document.getElementById("submitBtn").disabled = true;
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("results").style.display = "none";
+
+    try {
+      const res = await fetch("/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ meat, fish, vegetables, other })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || "エラーが発生しました。");
+        return;
+      }
+
+      renderRecipes(data.recipes);
+    } catch (e) {
+      showError("通信エラーが発生しました。");
+    } finally {
+      document.getElementById("submitBtn").disabled = false;
+      document.getElementById("loading").style.display = "none";
+    }
+  }
+
+  function renderRecipes(recipes) {
+    const list = document.getElementById("recipeList");
+    list.innerHTML = "";
+
+    recipes.forEach(r => {
+      const cookpadUrl = `https://cookpad.com/search/${encodeURIComponent(r.name)}`;
+      const tags = (r.main_ingredients || []).map(i => `<span class="tag">${i}</span>`).join("");
+
+      list.innerHTML += `
+        <div class="recipe-card">
+          <div class="recipe-header">
+            <div class="recipe-name">${r.name}</div>
+            ${difficultyBadge(r.difficulty)}
+          </div>
+          <div class="recipe-desc">${r.description}</div>
+          <div class="recipe-meta">
+            <span>⏱ ${r.cooking_time}</span>
+          </div>
+          <div class="recipe-tags">${tags}</div>
+          <a href="${cookpadUrl}" target="_blank" class="btn-cookpad">
+            クックパッドでレシピを見る →
+          </a>
+        </div>
+      `;
+    });
+
+    document.getElementById("results").style.display = "block";
+    document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  function hideError() {
+    document.getElementById("errorMsg").style.display = "none";
+  }
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+  }
+</script>
+
+</body>
+</html>
