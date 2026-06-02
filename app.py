@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify, render_template
-import google.generativeai as genai
+from groq import Groq
 import os
 
 app = Flask(__name__)
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.0-flash")
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 @app.route("/")
 def index():
@@ -51,11 +50,15 @@ def suggest():
 
 JSONのみ返してください。説明文は不要です。"""
 
-    response = model.generate_content(prompt)
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=2000
+    )
 
     import json
     import re
-    response_text = response.text
+    response_text = response.choices[0].message.content
     json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
     if json_match:
         recipes = json.loads(json_match.group())
